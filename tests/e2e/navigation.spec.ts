@@ -25,6 +25,11 @@ test('API routes are not swallowed by the SPA fallback', async ({ request }) => 
   expect(res.headers()['cache-control']).toBe('no-store');
   expect(Array.isArray(await res.json())).toBe(true);
 
+  // An empty task reaches the API handler and is rejected by validation, not served the SPA.
   const post = await request.post('/api/tasks', { data: {} });
-  expect(post.status()).toBe(405);
+  expect(post.status()).toBe(422);
+  expect((await post.json()).error.code).toBe('VALIDATION_ERROR');
+
+  const unsupported = await request.delete('/api/tasks');
+  expect(unsupported.status()).toBe(405);
 });

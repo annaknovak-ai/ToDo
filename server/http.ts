@@ -6,9 +6,24 @@ export function sendJson(res: VercelResponse, status: number, body: unknown): vo
   res.status(status).json(body);
 }
 
-export function sendError(res: VercelResponse, status: number, code: string, message: string): void {
-  const body: ApiError = { error: { code, message } };
+export function sendError(res: VercelResponse, status: number, code: string, message: string, field?: string): void {
+  const body: ApiError = { error: field ? { code, message, field } : { code, message } };
   sendJson(res, status, body);
+}
+
+// Responds with 400/413 and returns false unless the request carries a JSON body within the size limit.
+export function requireJsonBody(req: VercelRequest, res: VercelResponse, maxBytes: number): boolean {
+  const contentType = String(req.headers?.['content-type'] ?? '');
+  if (!/^application\/json\b/i.test(contentType)) {
+    sendError(res, 400, 'INVALID_REQUEST', 'הבקשה אינה תקינה.');
+    return false;
+  }
+  const length = Number(req.headers?.['content-length'] ?? 0);
+  if (length > maxBytes || Buffer.byteLength(JSON.stringify(req.body ?? null)) > maxBytes) {
+    sendError(res, 413, 'PAYLOAD_TOO_LARGE', 'הבקשה גדולה מדי.');
+    return false;
+  }
+  return true;
 }
 
 // Responds with 405 and returns false when the method is not allowed.

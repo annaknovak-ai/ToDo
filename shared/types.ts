@@ -8,6 +8,13 @@ export type Task = {
   position: number;
 };
 
+// The editable fields of a task, as sent when creating it.
+export type TaskInput = {
+  title: string | null;
+  description: string | null;
+  dueDate: string | null;
+};
+
 export type ApiError = {
   error: {
     code: string;

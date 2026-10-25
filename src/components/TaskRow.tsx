@@ -14,7 +14,7 @@ export default function TaskRow({ task, selected, onSelect }: Props) {
   if (task.completed) classes.push('is-completed');
 
   return (
-    <li className={classes.join(' ')} data-testid="task-row">
+    <li className={classes.join(' ')} data-testid="task-row" data-task-id={task.id}>
       {/* Read-only completion indicator; toggling is added in Milestone 4. */}
       <input
         type="checkbox"

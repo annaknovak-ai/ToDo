@@ -108,11 +108,12 @@ describe('Home page', () => {
     expect(screen.getByLabelText('תאריך יעד')).toHaveValue('');
   });
 
-  it('does not offer write actions yet', async () => {
+  it('offers adding a task, but no edit or delete actions yet', async () => {
     mockFetch(() => jsonResponse(sampleTasks));
     renderAt('/');
     await userEvent.click(await screen.findByRole('button', { name: 'לקנות מצרכים' }));
-    expect(screen.queryByRole('button', { name: /שמור|מחק|הוסף/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'הוסף משימה' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /שמור|מחק/ })).not.toBeInTheDocument();
   });
 });
 
