@@ -1,0 +1,361 @@
+/* Design tokens from DESIGN.md section 2.1 */
+:root {
+  --primary: #2f80ed;
+  --primary-light: #56ccf2;
+  --background: #eaf6ff;
+  --surface: #ffffff;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --border: #d1d5db;
+  --input-background: #f3f4f6;
+  --success: #27ae60;
+  --error: #eb5757;
+  --warning: #f2c94c;
+
+  --selected-background: #e3f2fd;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --navbar-height: 56px;
+
+  font-family: 'Inter Variable', 'Segoe UI', Roboto, 'Noto Sans Hebrew', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--background);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ---------- Navigation ---------- */
+.navbar {
+  height: var(--navbar-height);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.navbar nav {
+  display: flex;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-2);
+  gap: var(--space-1);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  border-bottom: 3px solid transparent;
+}
+
+.nav-link:hover {
+  color: var(--primary);
+}
+
+.nav-link.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: var(--selected-background);
+}
+
+.nav-link:focus-visible,
+.task-select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+/* ---------- Home layout ---------- */
+.home {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--navbar-height));
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-2);
+  gap: var(--space-3);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- Panels ---------- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.list-panel,
+.details-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--input-background);
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-2) var(--space-3);
+}
+
+.list-body {
+  overflow-y: auto;
+  padding: var(--space-1);
+}
+
+.details-panel .panel-body {
+  overflow-y: auto;
+}
+
+.panel-message {
+  margin: var(--space-4) var(--space-2);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.panel-message.is-error {
+  color: var(--error);
+  background: #fdecec;
+  border: 1px solid #f7c4c4;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+}
+
+/* ---------- Task rows ---------- */
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-height: 52px;
+}
+
+.task-row:last-child {
+  border-bottom: none;
+}
+
+.task-row:hover {
+  background: var(--input-background);
+}
+
+.task-row.is-selected {
+  background: var(--selected-background);
+}
+
+.task-checkbox {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.task-checkbox:disabled {
+  opacity: 1;
+}
+
+.task-select {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: var(--space-1);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  text-align: right;
+  cursor: pointer;
+}
+
+.task-label {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-row.is-completed .task-label {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+/* ---------- Details form ---------- */
+.details-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: right;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.field input[readonly],
+.field textarea[readonly] {
+  background: var(--input-background);
+}
+
+.field input[type='date'] {
+  max-width: 240px;
+}
+
+/* ---------- About ---------- */
+.about {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-2);
+}
+
+.about-card {
+  padding: var(--space-4);
+}
+
+.about-card h1 {
+  margin-bottom: var(--space-2);
+}
+
+.about-card p {
+  margin: 0 0 var(--space-2);
+  font-size: 16px;
+}
+
+/* ---------- Mobile: single column, list above details ---------- */
+@media (max-width: 767px) {
+  .home {
+    height: auto;
+    padding: var(--space-2);
+    gap: var(--space-2);
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .list-panel,
+  .details-panel {
+    overflow: visible;
+  }
+
+  .list-body,
+  .details-panel .panel-body {
+    overflow: visible;
+  }
+
+  .details-panel {
+    scroll-margin-top: var(--space-2);
+  }
+
+  .panel-title {
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .panel-body {
+    padding: var(--space-2);
+  }
+
+  .field input[type='date'] {
+    max-width: none;
+  }
+
+  .about-card {
+    padding: var(--space-3) var(--space-2);
+  }
+}
