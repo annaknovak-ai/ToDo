@@ -42,6 +42,12 @@ function repo(overrides: Partial<TasksRepository>): () => TasksRepository {
     createTask: async () => {
       throw new Error('not expected');
     },
+    updateTaskDetails: async () => {
+      throw new Error('not expected');
+    },
+    deleteTask: async () => {
+      throw new Error('not expected');
+    },
     ...overrides,
   });
 }

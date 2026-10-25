@@ -1,5 +1,13 @@
 import type pg from 'pg';
-import { createTasksRepository, TaskLimitError } from '../../server/tasksRepository.js';
+import type { TaskInput } from '../../shared/types.js';
+import { PRODUCT_TIME_ZONE, todayInTimeZone, validateTaskInput, validationMessages } from '../../shared/validation.js';
+import {
+  createTasksRepository,
+  TaskLimitError,
+  TaskNotFoundError,
+  TaskValidationError,
+  type TaskRow,
+} from '../../server/tasksRepository.js';
 import { createDevPool, insertTask, restoreSnapshot, takeSnapshot, type TasksSnapshot } from '../helpers/devDb.js';
 
 // Runs against the Dev Supabase project as app_backend; the original rows are restored afterwards.
@@ -127,5 +135,139 @@ describe('createTask against Dev', () => {
     );
     const positions = created.map((t) => t.position).sort((a, b) => a - b);
     expect(positions).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+});
+
+const TODAY = todayInTimeZone(PRODUCT_TIME_ZONE);
+
+// The same validation the PATCH handler passes to the repository.
+const validateAgainstSaved = (input: TaskInput) => (savedDueDate: string | null) =>
+  validateTaskInput(input, { today: TODAY, savedDueDate });
+
+async function readRow(id: string) {
+  const { rows } = await db.query<TaskRow & { updated_at: Date }>(
+    'select id, title, description, due_date, completed, position, updated_at from public.tasks where id = $1',
+    [id],
+  );
+  return rows[0];
+}
+
+async function positions(): Promise<{ id: string; position: number }[]> {
+  const { rows } = await db.query<{ id: string; position: number }>(
+    'select id, position from public.tasks order by position, id',
+  );
+  return rows;
+}
+
+describe('updateTaskDetails against Dev', () => {
+  it('changes only title, description and due date, and moves updated_at', async () => {
+    const id = await insertTask(db, { title: 'ישן', description: 'תיאור ישן', completed: true, position: 3 });
+    const before = await readRow(id);
+    const task = await createTasksRepository(db).updateTaskDetails(
+      id,
+      validateAgainstSaved({ title: '  חדש  ', description: '  ', dueDate: '2099-01-01' }),
+    );
+    expect(task).toEqual({ id, title: 'חדש', description: null, dueDate: '2099-01-01', completed: true, position: 3 });
+    const after = await readRow(id);
+    expect(after).toMatchObject({ title: 'חדש', description: null, due_date: '2099-01-01', completed: true, position: 3 });
+    expect(after.updated_at.getTime()).toBeGreaterThan(before.updated_at.getTime());
+  });
+
+  it('keeps a stored past due date when it is not changed, and refuses another past date', async () => {
+    const id = await insertTask(db, { title: 'פג תוקף', dueDate: '2020-05-05', position: 0 });
+    const repo = createTasksRepository(db);
+    const kept = await repo.updateTaskDetails(id, validateAgainstSaved({ title: 'עודכן', description: null, dueDate: '2020-05-05' }));
+    expect(kept).toMatchObject({ title: 'עודכן', dueDate: '2020-05-05' });
+
+    const error = await repo
+      .updateTaskDetails(id, validateAgainstSaved({ title: 'שוב', description: null, dueDate: '2020-06-06' }))
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(TaskValidationError);
+    expect((error as TaskValidationError).errors).toEqual({ dueDate: validationMessages.dueDateInPast });
+    expect(await readRow(id)).toMatchObject({ title: 'עודכן', due_date: '2020-05-05' });
+  });
+
+  it('throws TaskNotFoundError for a task that does not exist', async () => {
+    await expect(
+      createTasksRepository(db).updateTaskDetails(
+        '3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b',
+        validateAgainstSaved({ title: 'x', description: null, dueDate: null }),
+      ),
+    ).rejects.toBeInstanceOf(TaskNotFoundError);
+  });
+
+  it('two concurrent saves of the same task: the last one wins, status and position are untouched', async () => {
+    const id = await insertTask(db, { title: 'מקור', completed: true, position: 2 });
+    // A third connection holds the row lock so both saves queue up in a known order.
+    const lockPool = createDevPool();
+    const locker = await lockPool.connect();
+    try {
+      await locker.query('begin');
+      await locker.query('select id from public.tasks where id = $1 for update', [id]);
+      const first = createTasksRepository(db).updateTaskDetails(
+        id,
+        validateAgainstSaved({ title: 'מבקר 1', description: 'ראשון', dueDate: null }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const second = createTasksRepository(otherDb).updateTaskDetails(
+        id,
+        validateAgainstSaved({ title: 'מבקר 2', description: null, dueDate: '2099-02-02' }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await locker.query('commit');
+      await Promise.all([first, second]);
+    } finally {
+      locker.release();
+      await lockPool.end();
+    }
+    expect(await readRow(id)).toMatchObject({
+      title: 'מבקר 2',
+      description: null,
+      due_date: '2099-02-02',
+      completed: true,
+      position: 2,
+    });
+  });
+});
+
+describe('deleteTask against Dev', () => {
+  it('deletes the task and renumbers the rest to 0..N-1 in the same order', async () => {
+    const a = await insertTask(db, { title: 'א', position: 0 });
+    const b = await insertTask(db, { title: 'ב', position: 3 });
+    const c = await insertTask(db, { title: 'ג', position: 5 });
+    const d = await insertTask(db, { title: 'ד', position: 9 });
+    await createTasksRepository(db).deleteTask(b);
+    expect(await positions()).toEqual([
+      { id: a, position: 0 },
+      { id: c, position: 1 },
+      { id: d, position: 2 },
+    ]);
+  });
+
+  it('throws TaskNotFoundError when deleting twice, and changes nothing else', async () => {
+    const a = await insertTask(db, { title: 'א', position: 0 });
+    const b = await insertTask(db, { title: 'ב', position: 1 });
+    await createTasksRepository(db).deleteTask(a);
+    await expect(createTasksRepository(otherDb).deleteTask(a)).rejects.toBeInstanceOf(TaskNotFoundError);
+    expect(await positions()).toEqual([{ id: b, position: 0 }]);
+  });
+
+  it('concurrent deletes and creates leave unique, contiguous positions', async () => {
+    await fillTasks(10);
+    const ids = (await positions()).map((r) => r.id);
+    const repos = [createTasksRepository(db), createTasksRepository(otherDb)];
+    await Promise.all([
+      repos[0].deleteTask(ids[2]),
+      repos[1].createTask({ title: 'חדשה 1', description: null, dueDate: null }),
+      repos[1].deleteTask(ids[7]),
+      repos[0].createTask({ title: 'חדשה 2', description: null, dueDate: null }),
+    ]);
+    const after = await positions();
+    expect(after).toHaveLength(10);
+    // Creates append after the highest position, so gaps may remain only after a create that
+    // ran before a delete; positions are always unique.
+    expect(new Set(after.map((r) => r.position)).size).toBe(10);
+    expect(after.map((r) => r.id)).not.toContain(ids[2]);
+    expect(after.map((r) => r.id)).not.toContain(ids[7]);
   });
 });

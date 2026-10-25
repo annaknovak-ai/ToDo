@@ -48,7 +48,12 @@ export function isValidDateString(value: string): boolean {
 
 // Validates and normalizes a task. Returns every error at once so the form can show each next to its field.
 // `today` is YYYY-MM-DD; dates are compared as strings.
-export function validateTaskInput(input: TaskInput, options: { today: string }): ValidationResult {
+// When updating, pass the stored due date as `savedDueDate`: the "not in the past" rule then applies
+// only if the due date was changed (PRD FR-02, ADR-8).
+export function validateTaskInput(
+  input: TaskInput,
+  options: { today: string; savedDueDate?: string | null },
+): ValidationResult {
   const title = normalizeText(input.title);
   const description = normalizeText(input.description);
   const dueDate = input.dueDate === '' ? null : input.dueDate;
@@ -61,7 +66,9 @@ export function validateTaskInput(input: TaskInput, options: { today: string }):
   }
   if (dueDate !== null) {
     if (!isValidDateString(dueDate)) errors.dueDate = validationMessages.dueDateInvalid;
-    else if (dueDate < options.today) errors.dueDate = validationMessages.dueDateInPast;
+    else if (dueDate < options.today && dueDate !== options.savedDueDate) {
+      errors.dueDate = validationMessages.dueDateInPast;
+    }
   }
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };

@@ -44,3 +44,20 @@ export async function createTask(input: TaskInput): Promise<Task> {
   if (!response.ok) throw await errorFrom(response);
   return (await response.json()) as Task;
 }
+
+// Saves the title, description and due date of a task. Throws like createTask.
+export async function updateTask(id: string, input: TaskInput): Promise<Task> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Task;
+}
+
+// Deletes a task. The server answers 204 with no body. Throws like createTask.
+export async function deleteTask(id: string): Promise<void> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!response.ok) throw await errorFrom(response);
+}

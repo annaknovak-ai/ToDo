@@ -1,15 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { TaskInput } from '../shared/types.js';
-import { PRODUCT_TIME_ZONE, todayInTimeZone, validateTaskInput, type ValidationField } from '../shared/validation.js';
-import { allowMethods, requireJsonBody, sendError, sendJson, sendServerError } from './http.js';
+import { PRODUCT_TIME_ZONE, todayInTimeZone, validateTaskInput } from '../shared/validation.js';
+import { allowMethods, requireJsonBody, sendError, sendJson, sendServerError, sendValidationError } from './http.js';
 import { TaskLimitError, type TasksRepository } from './tasksRepository.js';
 
-const MAX_BODY_BYTES = 16 * 1024;
+export const MAX_BODY_BYTES = 16 * 1024;
 
 const TASK_LIMIT_MESSAGE = 'לא ניתן להוסיף משימה: הרשימה התמלאה. מחק משימה קיימת ונסה שוב.';
-
-// Order in which a single validation error is reported.
-const FIELD_ORDER: ValidationField[] = ['content', 'title', 'description', 'dueDate'];
 
 function isNullableString(value: unknown): value is string | null | undefined {
   return value === undefined || value === null || typeof value === 'string';
@@ -41,8 +38,7 @@ export function createTasksHandler(getRepository: () => TasksRepository, now: ()
       }
       const validation = validateTaskInput(input, { today: todayInTimeZone(PRODUCT_TIME_ZONE, now()) });
       if (!validation.ok) {
-        const field = FIELD_ORDER.find((f) => validation.errors[f])!;
-        sendError(res, 422, 'VALIDATION_ERROR', validation.errors[field]!, field);
+        sendValidationError(res, validation.errors);
         return;
       }
       const task = await getRepository().createTask(validation.value);

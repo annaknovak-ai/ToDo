@@ -53,6 +53,20 @@ export default function HomePage() {
     }
   }
 
+  // Only the detail fields come from the save answer, so a status change made meanwhile is kept (ADR-9).
+  function handleSaved(saved: Task) {
+    setTasks((current) =>
+      current.map((t) =>
+        t.id === saved.id ? { ...t, title: saved.title, description: saved.description, dueDate: saved.dueDate } : t,
+      ),
+    );
+  }
+
+  function handleDeleted(id: string) {
+    setTasks((current) => current.filter((t) => t.id !== id));
+    setSelectedId(null);
+  }
+
   const listFull = status === 'ready' && tasks.length >= MAX_TASKS;
   // Adding needs a loaded list to append to and select in.
   const canAdd = status === 'ready' && !listFull;
@@ -71,7 +85,7 @@ export default function HomePage() {
       </div>
       <div className="workspace">
         <TaskList status={status} tasks={tasks} selectedId={selectedId} onSelect={handleSelect} />
-        <TaskDetails task={selectedTask} ref={detailsRef} />
+        <TaskDetails task={selectedTask} onSaved={handleSaved} onDeleted={handleDeleted} ref={detailsRef} />
       </div>
       {creating && <CreateTaskModal onClose={() => setCreating(false)} onCreated={handleCreated} />}
     </main>

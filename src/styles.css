@@ -289,9 +289,11 @@ h2 {
   min-height: 120px;
 }
 
-.field input[readonly],
-.field textarea[readonly] {
-  background: var(--input-background);
+.details-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .field input[type='date'] {
@@ -331,6 +333,15 @@ h2 {
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--selected-background);
+}
+
+.btn-danger {
+  color: #fff;
+  background: var(--error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #d94444;
 }
 
 .btn:disabled {
@@ -434,6 +445,19 @@ h2 {
   flex: 2;
 }
 
+.delete-modal {
+  width: min(400px, calc(100vw - 32px));
+}
+
+.modal-question {
+  margin: 0 0 var(--space-3);
+  font-size: 16px;
+}
+
+.delete-modal .form-error {
+  margin-bottom: var(--space-2);
+}
+
 /* ---------- Form feedback ---------- */
 .field input::placeholder,
 .field textarea::placeholder {
@@ -457,6 +481,16 @@ h2 {
   color: var(--error);
   background: #fdecec;
   border: 1px solid #f7c4c4;
+  border-radius: var(--radius-sm);
+}
+
+.form-success {
+  margin: 0;
+  padding: 12px var(--space-2);
+  font-size: 14px;
+  color: #1e7e47;
+  background: #e8f6ee;
+  border: 1px solid #b7e2c8;
   border-radius: var(--radius-sm);
 }
 
@@ -540,6 +574,10 @@ h2 {
 
   .field input[type='date'] {
     max-width: none;
+  }
+
+  .details-actions {
+    flex-direction: column;
   }
 
   .about-card {

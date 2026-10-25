@@ -54,6 +54,34 @@ describe('validateTaskInput', () => {
   });
 });
 
+describe('validateTaskInput when updating (savedDueDate)', () => {
+  const update = (dueDate: string | null, savedDueDate: string | null) =>
+    validateTaskInput({ title: 'x', description: null, dueDate }, { today, savedDueDate });
+
+  it('allows keeping a saved due date that is already in the past', () => {
+    expect(update('2026-01-01', '2026-01-01')).toEqual({
+      ok: true,
+      value: { title: 'x', description: null, dueDate: '2026-01-01' },
+    });
+  });
+
+  it('rejects changing the due date to another past date', () => {
+    expect(update('2026-02-01', '2026-01-01')).toEqual({ ok: false, errors: { dueDate: validationMessages.dueDateInPast } });
+    expect(update('2026-02-01', null)).toEqual({ ok: false, errors: { dueDate: validationMessages.dueDateInPast } });
+  });
+
+  it('allows changing a past due date to today, a future date or no date', () => {
+    expect(update(today, '2026-01-01').ok).toBe(true);
+    expect(update('2027-03-01', '2026-01-01').ok).toBe(true);
+    expect(update(null, '2026-01-01').ok).toBe(true);
+    expect(update('', '2026-01-01').ok).toBe(true);
+  });
+
+  it('still rejects an invalid date even when it equals the saved value', () => {
+    expect(update('2026-02-30', '2026-02-30')).toEqual({ ok: false, errors: { dueDate: validationMessages.dueDateInvalid } });
+  });
+});
+
 describe('todayInTimeZone', () => {
   it('uses the given time zone, not UTC', () => {
     const lateUtc = new Date('2026-10-25T22:30:00Z');

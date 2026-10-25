@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { ApiError } from '../shared/types.js';
+import type { ValidationErrors, ValidationField } from '../shared/validation.js';
 
 export function sendJson(res: VercelResponse, status: number, body: unknown): void {
   res.setHeader('Cache-Control', 'no-store');
@@ -9,6 +10,15 @@ export function sendJson(res: VercelResponse, status: number, body: unknown): vo
 export function sendError(res: VercelResponse, status: number, code: string, message: string, field?: string): void {
   const body: ApiError = { error: field ? { code, message, field } : { code, message } };
   sendJson(res, status, body);
+}
+
+// Order in which a single validation error is reported.
+const FIELD_ORDER: ValidationField[] = ['content', 'title', 'description', 'dueDate'];
+
+// Responds with 422 and the first validation error, naming its field.
+export function sendValidationError(res: VercelResponse, errors: ValidationErrors): void {
+  const field = FIELD_ORDER.find((f) => errors[f])!;
+  sendError(res, 422, 'VALIDATION_ERROR', errors[field]!, field);
 }
 
 // Responds with 400/413 and returns false unless the request carries a JSON body within the size limit.

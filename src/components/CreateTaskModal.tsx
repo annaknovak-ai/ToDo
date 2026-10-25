@@ -1,7 +1,8 @@
 import { useId, useState, type FormEvent } from 'react';
 import type { Task } from '../../shared/types';
 import { validateTaskInput, type ValidationErrors, type ValidationField } from '../../shared/validation';
-import { ApiRequestError, createTask } from '../api/tasksApi';
+import { createTask } from '../api/tasksApi';
+import { errorMessageFor } from '../lib/apiErrors';
 import { localToday } from '../lib/dates';
 import { messages } from '../messages';
 import Modal from './Modal';
@@ -10,23 +11,6 @@ type Props = {
   onClose: () => void;
   onCreated: (task: Task) => void;
 };
-
-// Field errors from the server that belong next to a field; anything else goes to the form message.
-const FIELD_ERRORS: ValidationField[] = ['title', 'description', 'dueDate'];
-
-function errorMessageFor(error: unknown): ValidationErrors {
-  if (error instanceof ApiRequestError) {
-    if (error.status === 409 && error.code === 'TASK_LIMIT_REACHED') return { content: messages.listFullOnCreate };
-    if (error.status === 422 && error.message) {
-      const field = FIELD_ERRORS.includes(error.field as ValidationField) ? (error.field as ValidationField) : 'content';
-      return { [field]: error.message };
-    }
-    if (error.status === 429) return { content: messages.tooManyRequests };
-    return { content: messages.saveFailed };
-  }
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) return { content: messages.offline };
-  return { content: messages.saveFailed };
-}
 
 // "Add task" form. A fresh instance is mounted on every open, so closing discards the draft.
 export default function CreateTaskModal({ onClose, onCreated }: Props) {
@@ -61,7 +45,7 @@ export default function CreateTaskModal({ onClose, onCreated }: Props) {
       const task = await createTask(input);
       onCreated(task);
     } catch (error) {
-      setErrors(errorMessageFor(error));
+      setErrors(errorMessageFor(error, messages.saveFailed));
       setSubmitting(false);
     }
   }
