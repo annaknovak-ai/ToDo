@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 3100;
+const PORT = 3000;
 
 // E2E tests run against `vercel dev` and the Dev database (ADR-11).
 export default defineConfig({
@@ -8,7 +8,9 @@ export default defineConfig({
   globalSetup: './tests/e2e/global-setup.ts',
   fullyParallel: false,
   workers: 1,
-  timeout: 30000,
+  timeout: 60000,
+  // vercel dev answers API calls slowly (a few seconds each) on a local machine.
+  expect: { timeout: 15000 },
   reporter: 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,

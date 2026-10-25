@@ -24,6 +24,7 @@ async function mockTasks(page: Page, body: unknown, status = 200) {
 
 test.describe('home page with real Dev data', () => {
   let insertedTitle: string;
+  let untitledText: string;
 
   test.beforeAll(async () => {
     // Make sure the list is not empty and has a task without a title.
@@ -32,8 +33,9 @@ test.describe('home page with real Dev data', () => {
       const { rows } = await db.query<{ max: number | null }>('select max(position) as max from public.tasks');
       const next = (rows[0].max ?? -1) + 1;
       insertedTitle = `E2E ${Date.now()}`;
+      untitledText = `משימת בדיקה בלי כותרת ${Date.now()}`;
       await insertTask(db, { title: insertedTitle, description: 'נוצר בבדיקה', dueDate: '2026-12-20', position: next });
-      await insertTask(db, { title: null, description: 'משימת בדיקה בלי כותרת', completed: true, position: next + 1 });
+      await insertTask(db, { title: null, description: untitledText, completed: true, position: next + 1 });
     } finally {
       await db.end();
     }
@@ -47,7 +49,7 @@ test.describe('home page with real Dev data', () => {
     const row = page.getByTestId('task-row').filter({ hasText: insertedTitle });
     await expect(row).toBeVisible();
 
-    const untitled = page.getByTestId('task-row').filter({ hasText: 'משימת בדיקה בלי כותרת' });
+    const untitled = page.getByTestId('task-row').filter({ hasText: untitledText });
     await expect(untitled).toHaveClass(/is-completed/);
     await expect(untitled.getByRole('checkbox')).toBeChecked();
 

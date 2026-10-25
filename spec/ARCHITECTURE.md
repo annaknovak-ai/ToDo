@@ -307,3 +307,35 @@ Chrome Desktop / Chrome Android (PWA)
 **החלטה:** `@playwright/test` יותקן כ-devDependency; דפדפן Chromium יותקן לתוך `node_modules` (`PLAYWRIGHT_BROWSERS_PATH=0`) על ידי סקריפט שרץ אוטומטית כ-`postinstall` של `npm install`. `npm run test:e2e` יריץ את בדיקות ה-E2E מול `vercel dev` ופרויקט ה-Dev, בשני מצבים: Desktop Chrome ו-Mobile Chrome. לפני ההרצה יישמר עותק של טבלת `tasks` ב-Dev ובסיומה הוא יוחזר, באמצעות קוד משותף עם בדיקות ה-Integration (ADR-7). שגיאות שרת ומצב לא-מקוון ידומו בדפדפן (`page.route`, `setOffline`). מול Production יבוצעו רק בדיקות קריאה.
 
 **השלכות:** הרצה ראשונה של `npm install` צפויה להוריד כ-150MB. גרירה במגע אמיתי והתקנת PWA בטלפון ייבדקו ידנית. בזמן הרצת E2E הרשימה ב-Dev משתנה זמנית.
+
+### ADR-12: הרצה מקומית ב-`npm start`, ו-SPA Fallback שאינו תופס קובצי פיתוח
+
+**הקשר:** Vercel CLI מסרב להריץ `vercel dev` כאשר הסקריפט `dev` ב-`package.json` מפעיל אותו בעצמו (`DEV_RECURSIVE_INVOCATION`). בנוסף, תחת `vercel dev` כלל ה-Rewrite הכללי (`/((?!api/).*)` ← `/index.html`) תפס גם את קובצי הפיתוח של Vite (`/src/main.tsx`, `/@vite/client`) והאתר נטען כדף ריק.
+
+**החלטה:** `npm start` מריץ `vercel dev` (האתר המלא: Frontend + API מול Dev); `npm run dev` מריץ Vite בלבד (מסכים ללא API). ה-Rewrite ב-`vercel.json` הוא `/((?!api/|@)[^.]*)` ← `/index.html`: רק נתיבי דפים, ללא נתיבי API, ללא נתיבים פנימיים של Vite וללא קבצים (נתיב שיש בו נקודה).
+
+**השלכות:** `/about` ונתיבים לא מוכרים נטענים ב-Refresh; קבצים סטטיים ו-`/api/*` אינם מושפעים. נתיב דף שיכיל נקודה לא יקבל Fallback – אין כאלה באתר.
+
+### ADR-13: אזור Frankfurt ל-Database ול-Functions
+
+**הקשר:** ARCHITECTURE 2.9 ממליץ להציב את ה-Functions קרוב ל-Supabase. ברירת המחדל של פרויקט Vercel היא `iad1` (ארה"ב).
+
+**החלטה:** שני פרויקטי Supabase נוצרו ב-`eu-central-1` (Frankfurt), ו-`vercel.json` קובע `"regions": ["fra1"]` ל-Functions.
+
+**השלכות:** Latency נמוך בין ה-Functions למסד. שינוי אזור ב-Supabase מחייב עדכון `regions` בהתאם.
+
+### ADR-14: תאריכים כמחרוזות, וכתובת חיבור ללא `sslmode`
+
+**הקשר:** `pg` ממיר עמודות `date` לאובייקט `Date` לפי אזור הזמן של השרת, ועלול להזיז יום – בניגוד ל-ARCHITECTURE 2.3. בנוסף, `sslmode` בכתובת החיבור דורס בגרסאות `pg` עדכניות את `ssl: { rejectUnauthorized: false }` (ADR-3) ומפעיל אימות תעודה שנכשל מול ה-Pooler.
+
+**החלטה:** `server/db.ts` מגדיר Type Parser ל-`date` (OID 1082) שמחזיר את המחרוזת `YYYY-MM-DD` כפי שהיא, ומסיר `sslmode` מהכתובת לפני יצירת ה-Pool.
+
+**השלכות:** `dueDate` עובר בין המסד, ה-API והטופס כמחרוזת תאריך בלבד, ללא שעון. כתובת שהועתקה עם `sslmode` עדיין תעבוד.
+
+### ADR-15: Migration שהוחלה אינה נערכת; תיקון נעשה ב-Migration חדשה
+
+**הקשר:** בדיקות ה-Integration גילו שאילוץ "כותרת או תיאור" (`title ~ '\S' or description ~ '\S'`) מאפשר שורה ששני השדות בה `NULL`, כי תוצאת `NULL` של אילוץ נחשבת עוברת. ה-Migration המקורית כבר הוחלה על Dev, ו-Supabase מסמנת Migrations שהוחלו ולא מריצה אותן שוב.
+
+**החלטה:** התיקון נוסף כ-Migration נפרדת (`20261025190000_fix_tasks_content_check.sql`) שמחליפה את האילוץ ב-`coalesce(title ~ '\S', false) or coalesce(description ~ '\S', false)`. כלל קבוע: Migration שהוחלה על סביבה כלשהי אינה נערכת; כל שינוי הוא Migration חדשה.
+
+**השלכות:** ההיסטוריה זהה ב-Dev וב-Production, ו-Production יקבל את שתי ה-Migrations לפי הסדר בעת ה-Push. בדיקת Integration מכסה את המקרה.

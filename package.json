@@ -7,14 +7,15 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "vercel dev",
+    "start": "vercel dev",
+    "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b && tsc -p tsconfig.api.json",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
     "seed:dev": "tsx scripts/seed-dev.ts",
-    "db:push": "supabase db push",
+    "db:push": "supabase db push --linked",
     "postinstall": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium"
   },
   "dependencies": {

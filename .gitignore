@@ -80,3 +80,7 @@ desktop.ini
 tmp/
 temp/
 *.tmp
+
+.vercel
+.env*
+!.env.example
