@@ -253,6 +253,85 @@ h2 {
   color: var(--text-secondary);
 }
 
+.task-checkbox {
+  cursor: pointer;
+}
+
+.task-checkbox:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* While its status is being saved. */
+.task-checkbox:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* Large touch target; touch-action: none lets a finger drag the row instead of scrolling the page. */
+.drag-handle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: grab;
+  touch-action: none;
+}
+
+.drag-handle:hover {
+  color: var(--primary);
+  background: var(--selected-background);
+}
+
+.drag-handle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.drag-handle[aria-disabled='true'] {
+  cursor: progress;
+  opacity: 0.5;
+}
+
+.task-row.is-dragging {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.task-row.is-dragging .drag-handle {
+  cursor: grabbing;
+}
+
+/* Status or order error, above the list. */
+.list-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-1) var(--space-2) 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid #f7c4c4;
+  border-radius: var(--radius-sm);
+  background: #fdecec;
+  color: var(--error);
+  font-size: 14px;
+}
+
+.list-notice p {
+  flex: 1;
+  min-width: 12em;
+  margin: 0;
+}
+
 /* ---------- Details form ---------- */
 .details-form {
   display: flex;

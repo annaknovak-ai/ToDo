@@ -36,6 +36,22 @@ export function requireJsonBody(req: VercelRequest, res: VercelResponse, maxByte
   return true;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_PATTERN.test(value);
+}
+
+export const TASK_NOT_FOUND_MESSAGE = 'המשימה כבר לא קיימת, ייתכן שנמחקה. רענן את הרשימה.';
+
+// Returns the :id route parameter, or responds with 400 and returns null when it is not a UUID.
+export function requireTaskId(req: VercelRequest, res: VercelResponse): string | null {
+  const id = req.query?.id;
+  if (isUuid(id)) return id;
+  sendError(res, 400, 'INVALID_REQUEST', 'הבקשה אינה תקינה.');
+  return null;
+}
+
 // Responds with 405 and returns false when the method is not allowed.
 export function allowMethods(req: VercelRequest, res: VercelResponse, methods: string[]): boolean {
   if (req.method && methods.includes(req.method)) return true;

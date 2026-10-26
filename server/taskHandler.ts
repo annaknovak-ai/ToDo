@@ -1,13 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { TaskInput } from '../shared/types.js';
 import { PRODUCT_TIME_ZONE, todayInTimeZone, validateTaskInput } from '../shared/validation.js';
-import { allowMethods, requireJsonBody, sendError, sendJson, sendServerError, sendValidationError } from './http.js';
+import {
+  allowMethods,
+  requireJsonBody,
+  requireTaskId,
+  sendError,
+  sendJson,
+  sendServerError,
+  sendValidationError,
+  TASK_NOT_FOUND_MESSAGE,
+} from './http.js';
 import { MAX_BODY_BYTES } from './tasksHandler.js';
 import { TaskNotFoundError, TaskValidationError, type TasksRepository } from './tasksRepository.js';
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-const TASK_NOT_FOUND_MESSAGE = 'המשימה כבר לא קיימת, ייתכן שנמחקה. רענן את הרשימה.';
 
 function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === 'string';
@@ -28,11 +33,8 @@ function parseDetailsInput(body: unknown): TaskInput | null {
 export function createTaskHandler(getRepository: () => TasksRepository, now: () => Date = () => new Date()) {
   return async function handler(req: VercelRequest, res: VercelResponse) {
     if (!allowMethods(req, res, ['PATCH', 'DELETE'])) return;
-    const id = req.query?.id;
-    if (typeof id !== 'string' || !UUID_PATTERN.test(id)) {
-      sendError(res, 400, 'INVALID_REQUEST', 'הבקשה אינה תקינה.');
-      return;
-    }
+    const id = requireTaskId(req, res);
+    if (!id) return;
     try {
       if (req.method === 'DELETE') {
         await getRepository().deleteTask(id);

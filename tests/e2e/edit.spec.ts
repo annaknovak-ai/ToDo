@@ -37,8 +37,8 @@ async function readTask(id: string) {
 const details = (page: Page) => page.getByTestId('details-panel');
 
 async function select(page: Page, title: string) {
-  await page.getByTestId('task-row').filter({ hasText: title }).getByRole('button').click();
-  await expect(details(page).getByLabel('כותרת')).toHaveValue(title);
+  await page.getByTestId('task-row').filter({ hasText: title }).getByTestId('task-select').click();
+  await expect(details(page).getByLabel('כותרת', { exact: true })).toHaveValue(title);
 }
 
 const save = (page: Page) => details(page).getByRole('button', { name: 'שמור שינויים' }).click();
@@ -50,13 +50,13 @@ test('edit title, description and due date, save, and see it after a refresh', a
   await select(page, title);
 
   const newTitle = `${title} עודכן`;
-  await details(page).getByLabel('כותרת').fill(`  ${newTitle}  `);
-  await details(page).getByLabel('תיאור').fill('תיאור חדש\nבשתי שורות');
-  await details(page).getByLabel('תאריך יעד').fill('2099-03-15');
+  await details(page).getByLabel('כותרת', { exact: true }).fill(`  ${newTitle}  `);
+  await details(page).getByLabel('תיאור', { exact: true }).fill('תיאור חדש\nבשתי שורות');
+  await details(page).getByLabel('תאריך יעד', { exact: true }).fill('2099-03-15');
   await save(page);
 
   await expect(details(page).getByRole('status')).toHaveText(SAVE_SUCCESS);
-  await expect(details(page).getByLabel('כותרת')).toHaveValue(newTitle);
+  await expect(details(page).getByLabel('כותרת', { exact: true })).toHaveValue(newTitle);
   await expect(page.getByTestId('task-row').filter({ hasText: newTitle })).toHaveCount(1);
   expect(await readTask(id)).toMatchObject({
     title: newTitle,
@@ -67,8 +67,8 @@ test('edit title, description and due date, save, and see it after a refresh', a
 
   await page.reload();
   await select(page, newTitle);
-  await expect(details(page).getByLabel('תיאור')).toHaveValue('תיאור חדש\nבשתי שורות');
-  await expect(details(page).getByLabel('תאריך יעד')).toHaveValue('2099-03-15');
+  await expect(details(page).getByLabel('תיאור', { exact: true })).toHaveValue('תיאור חדש\nבשתי שורות');
+  await expect(details(page).getByLabel('תאריך יעד', { exact: true })).toHaveValue('2099-03-15');
 });
 
 test('a task whose saved due date has passed saves unchanged, but another past date is blocked', async ({ page }) => {
@@ -76,14 +76,14 @@ test('a task whose saved due date has passed saves unchanged, but another past d
   const id = await addTask({ title, dueDate: '2024-02-02' });
   await page.goto('/');
   await select(page, title);
-  await expect(details(page).getByLabel('תאריך יעד')).toHaveValue('2024-02-02');
+  await expect(details(page).getByLabel('תאריך יעד', { exact: true })).toHaveValue('2024-02-02');
 
-  await details(page).getByLabel('תיאור').fill('הוסף תיאור');
+  await details(page).getByLabel('תיאור', { exact: true }).fill('הוסף תיאור');
   await save(page);
   await expect(details(page).getByRole('status')).toHaveText(SAVE_SUCCESS);
   expect(await readTask(id)).toMatchObject({ description: 'הוסף תיאור', due_date: '2024-02-02' });
 
-  await details(page).getByLabel('תאריך יעד').fill('2024-03-03');
+  await details(page).getByLabel('תאריך יעד', { exact: true }).fill('2024-03-03');
   await save(page);
   await expect(details(page).getByText(DATE_IN_PAST)).toBeVisible();
   expect(await readTask(id)).toMatchObject({ due_date: '2024-02-02' });
@@ -95,12 +95,12 @@ test('empty content and a too long title are blocked inside the form', async ({ 
   await page.goto('/');
   await select(page, title);
 
-  await details(page).getByLabel('כותרת').fill('   ');
+  await details(page).getByLabel('כותרת', { exact: true }).fill('   ');
   await save(page);
   await expect(details(page).getByRole('alert')).toHaveText('יש להזין כותרת או תיאור למשימה');
-  await expect(details(page).getByLabel('כותרת')).toHaveValue('   ');
+  await expect(details(page).getByLabel('כותרת', { exact: true })).toHaveValue('   ');
 
-  await details(page).getByLabel('כותרת').fill('א'.repeat(101));
+  await details(page).getByLabel('כותרת', { exact: true }).fill('א'.repeat(101));
   await save(page);
   await expect(details(page).getByText('הכותרת יכולה להכיל עד 100 תווים.')).toBeVisible();
 });
@@ -114,21 +114,21 @@ test('unsaved changes are discarded by selecting another task, visiting About, o
   await page.goto('/');
 
   await select(page, first);
-  await details(page).getByLabel('תיאור').fill('טיוטה שלא נשמרה');
+  await details(page).getByLabel('תיאור', { exact: true }).fill('טיוטה שלא נשמרה');
   await select(page, second);
   await select(page, first);
-  await expect(details(page).getByLabel('תיאור')).toHaveValue('מקורי');
+  await expect(details(page).getByLabel('תיאור', { exact: true })).toHaveValue('מקורי');
 
-  await details(page).getByLabel('תיאור').fill('טיוטה שלא נשמרה');
+  await details(page).getByLabel('תיאור', { exact: true }).fill('טיוטה שלא נשמרה');
   await page.getByRole('link', { name: 'אודות' }).click();
   await page.getByRole('link', { name: 'דף הבית' }).click();
   await select(page, first);
-  await expect(details(page).getByLabel('תיאור')).toHaveValue('מקורי');
+  await expect(details(page).getByLabel('תיאור', { exact: true })).toHaveValue('מקורי');
 
-  await details(page).getByLabel('תיאור').fill('טיוטה שלא נשמרה');
+  await details(page).getByLabel('תיאור', { exact: true }).fill('טיוטה שלא נשמרה');
   await page.reload();
   await select(page, first);
-  await expect(details(page).getByLabel('תיאור')).toHaveValue('מקורי');
+  await expect(details(page).getByLabel('תיאור', { exact: true })).toHaveValue('מקורי');
 });
 
 test('a failed save keeps the edited values, and a retry succeeds', async ({ page }) => {
@@ -145,10 +145,10 @@ test('a failed save keeps the edited values, and a retry succeeds', async ({ pag
   });
   await page.goto('/');
   await select(page, title);
-  await details(page).getByLabel('תיאור').fill('נשמר בניסיון השני');
+  await details(page).getByLabel('תיאור', { exact: true }).fill('נשמר בניסיון השני');
   await save(page);
   await expect(details(page).getByRole('alert')).toHaveText(SAVE_FAILED);
-  await expect(details(page).getByLabel('תיאור')).toHaveValue('נשמר בניסיון השני');
+  await expect(details(page).getByLabel('תיאור', { exact: true })).toHaveValue('נשמר בניסיון השני');
 
   await save(page);
   await expect(details(page).getByRole('status')).toHaveText(SAVE_SUCCESS);
@@ -161,10 +161,10 @@ test('saving a task deleted meanwhile by another visitor shows the "no longer ex
   await page.goto('/');
   await select(page, title);
   await db.query('delete from public.tasks where id = $1', [id]);
-  await details(page).getByLabel('תיאור').fill('לא יישמר');
+  await details(page).getByLabel('תיאור', { exact: true }).fill('לא יישמר');
   await save(page);
   await expect(details(page).getByRole('alert')).toHaveText('המשימה כבר לא קיימת, ייתכן שנמחקה. רענן את הרשימה.');
-  await expect(details(page).getByLabel('תיאור')).toHaveValue('לא יישמר');
+  await expect(details(page).getByLabel('תיאור', { exact: true })).toHaveValue('לא יישמר');
 });
 
 test.describe('concurrent saves on the real API', () => {
@@ -199,7 +199,7 @@ test('on a phone the fields and buttons fit the screen width', async ({ page, is
   await select(page, title);
   const viewport = page.viewportSize()!;
   for (const control of [
-    details(page).getByLabel('כותרת'),
+    details(page).getByLabel('כותרת', { exact: true }),
     details(page).getByRole('button', { name: 'שמור שינויים' }),
     details(page).getByRole('button', { name: 'מחק משימה' }),
   ]) {

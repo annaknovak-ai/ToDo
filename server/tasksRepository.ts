@@ -23,7 +23,7 @@ export function toTask(row: TaskRow): Task {
 }
 
 // Transaction-level advisory lock shared by every change to the list structure
-// (create and delete now; reorder later), ARCHITECTURE 2.6.
+// (create, delete and reorder), ARCHITECTURE 2.6.
 export const TASKS_LIST_LOCK_KEY = 7_340_001;
 
 export class TaskLimitError extends Error {
@@ -37,6 +37,14 @@ export class TaskNotFoundError extends Error {
   constructor() {
     super('Task not found');
     this.name = 'TaskNotFoundError';
+  }
+}
+
+// The ids sent for a reorder do not match the tasks currently in the list, one to one (ADR-9).
+export class TaskOrderConflictError extends Error {
+  constructor() {
+    super('Task order does not match the list');
+    this.name = 'TaskOrderConflictError';
   }
 }
 
@@ -58,6 +66,8 @@ export type TasksRepository = {
   createTask(input: TaskInput): Promise<Task>;
   updateTaskDetails(id: string, validate: ValidateUpdate): Promise<Task>;
   deleteTask(id: string): Promise<void>;
+  setTaskCompleted(id: string, completed: boolean): Promise<Task>;
+  reorderTasks(orderedIds: string[]): Promise<Task[]>;
 };
 
 // Runs fn inside a transaction on a single client, as required behind the pooler.
@@ -77,6 +87,13 @@ async function inTransaction<T>(db: Pick<pg.Pool, 'connect'>, fn: (client: pg.Po
 }
 
 const TASK_COLUMNS = 'id, title, description, due_date, completed, position';
+
+// True when ids lists exactly the existing ids, each once, in any order.
+function sameIdSet(ids: string[], existing: string[]): boolean {
+  if (ids.length !== existing.length) return false;
+  const sent = new Set(ids.map((id) => id.toLowerCase()));
+  return sent.size === ids.length && existing.every((id) => sent.has(id.toLowerCase()));
+}
 
 export function createTasksRepository(db: Pick<pg.Pool, 'query' | 'connect'>): TasksRepository {
   return {
@@ -146,6 +163,43 @@ export function createTasksRepository(db: Pick<pg.Pool, 'query' | 'connect'>): T
                      from public.tasks) r
             where t.id = r.id and t.position <> r.new_position`,
         );
+      });
+    },
+
+    // Saves an explicit status in one statement. It touches neither position nor the details,
+    // so it needs no list lock (ADR-9).
+    async setTaskCompleted(id, completed) {
+      const result = await db.query<TaskRow>(
+        `update public.tasks
+            set completed = $2, updated_at = now()
+          where id = $1
+          returning ${TASK_COLUMNS}`,
+        [id, completed],
+      );
+      if (result.rowCount === 0) throw new TaskNotFoundError();
+      return toTask(result.rows[0]);
+    },
+
+    // Rewrites positions to 0..N-1 in the given order, under the shared list lock. The ids must
+    // match the current tasks one to one; otherwise nothing changes (ADR-9).
+    async reorderTasks(orderedIds) {
+      return inTransaction(db, async (client) => {
+        await client.query('select pg_advisory_xact_lock($1)', [TASKS_LIST_LOCK_KEY]);
+        const existing = await client.query<{ id: string }>('select id from public.tasks');
+        if (!sameIdSet(orderedIds, existing.rows.map((r) => r.id))) throw new TaskOrderConflictError();
+        await client.query(
+          `update public.tasks t
+              set position = (o.ord - 1)::int
+             from unnest($1::uuid[]) with ordinality as o(id, ord)
+            where t.id = o.id and t.position <> o.ord - 1`,
+          [orderedIds],
+        );
+        const result = await client.query<TaskRow>(
+          `select ${TASK_COLUMNS}
+             from public.tasks
+            order by position asc, id asc`,
+        );
+        return result.rows.map(toTask);
       });
     },
   };

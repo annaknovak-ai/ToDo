@@ -93,7 +93,7 @@ describe('Add task modal', () => {
     });
     const rows = screen.getAllByTestId('task-row');
     expect(rows.map((r) => r.textContent)).toEqual(['לקנות מצרכים', 'לתכנן חופשה', 'משימה חדשה']);
-    expect(within(rows[2]).getByRole('button')).toHaveAttribute('aria-pressed', 'true');
+    expect(within(rows[2]).getByTestId('task-select')).toHaveAttribute('aria-pressed', 'true');
     expect(within(rows[2]).getByRole('checkbox')).not.toBeChecked();
     expect(screen.getByLabelText('כותרת')).toHaveValue('משימה חדשה');
     expect(screen.getByLabelText('תאריך יעד')).toHaveValue('2026-10-25');
@@ -235,19 +235,20 @@ describe('Add task button', () => {
     );
   }
 
+  // Rendering 1,000 sortable rows (and role queries over them) is slow in jsdom.
   it('is disabled with a message when the list has 1,000 tasks', async () => {
     mockApi(fullList(1000));
     renderHome();
     expect(await screen.findByText(messages.listFull)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'הוסף משימה' })).toBeDisabled();
-  });
+  }, 30000);
 
   it('is enabled with 999 tasks', async () => {
     mockApi(fullList(999));
     renderHome();
     await waitFor(() => expect(screen.getByRole('button', { name: 'הוסף משימה' })).toBeEnabled());
     expect(screen.queryByText(messages.listFull)).not.toBeInTheDocument();
-  });
+  }, 30000);
 
   it('is disabled while loading and after a load error', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ error: { code: 'X', message: 'x' } }, 500)));

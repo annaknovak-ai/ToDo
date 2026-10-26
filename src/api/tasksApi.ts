@@ -61,3 +61,26 @@ export async function deleteTask(id: string): Promise<void> {
   const response = await fetch(`/api/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' });
   if (!response.ok) throw await errorFrom(response);
 }
+
+// Saves whether a task is completed (an explicit value, not a toggle). Throws like createTask.
+export async function setTaskStatus(id: string, completed: boolean): Promise<Task> {
+  const response = await fetch(`/api/tasks/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ completed }),
+  });
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Task;
+}
+
+// Saves the order of the whole list; orderedIds must hold every task id the client knows.
+// Answers with the list in its new order. Throws like createTask (409 when the list changed).
+export async function saveTaskOrder(orderedIds: string[]): Promise<Task[]> {
+  const response = await fetch('/api/tasks/order', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderedIds }),
+  });
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Task[];
+}

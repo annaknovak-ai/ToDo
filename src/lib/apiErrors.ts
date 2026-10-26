@@ -21,3 +21,15 @@ export function errorMessageFor(error: unknown, fallback: string): ValidationErr
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return { content: messages.offline };
   return { content: fallback };
 }
+
+// Turns a failed status change or reorder into the message shown above the list.
+export function listActionMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiRequestError) {
+    if (error.status === 404 && error.code === 'TASK_NOT_FOUND') return messages.taskGone;
+    if (error.status === 409 && error.code === 'ORDER_CONFLICT') return messages.orderConflict;
+    if (error.status === 429) return messages.tooManyRequests;
+    return fallback;
+  }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return messages.offline;
+  return fallback;
+}

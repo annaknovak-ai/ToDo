@@ -12,7 +12,11 @@ export const messages = {
   deleteFailed: 'המחיקה נכשלה. נסה שוב.',
   deleteQuestion: 'האם אתה בטוח שברצונך למחוק את המשימה הזו?',
   taskGone: 'המשימה כבר לא קיימת, ייתכן שנמחקה. רענן את הרשימה.',
-  tooManyRequests: 'יותר מדי פעולות בזמן קצר. המתן רגע ונסה שוב.',
+  statusFailed: 'לא הצלחנו לעדכן את סטטוס המשימה. נסה שוב.',
+  orderFailed: 'לא הצלחנו לשמור את הסדר החדש. נסה שוב.',
+  orderConflict: 'הרשימה השתנתה בינתיים. רענן כדי לראות את הגרסה העדכנית.',
+  refreshList: 'רענן את הרשימה',
+  tooManyRequests:'יותר מדי פעולות בזמן קצר. המתן רגע ונסה שוב.',
   titlePlaceholder: 'הזן כותרת (לא חובה)',
   descriptionPlaceholder: 'הזן תיאור (לא חובה)',
 } as const;

@@ -36,7 +36,7 @@ const row = (page: Page, title: string) => page.getByTestId('task-row').filter({
 const details = (page: Page) => page.getByTestId('details-panel');
 
 async function openConfirm(page: Page, title: string) {
-  await row(page, title).getByRole('button').click();
+  await row(page, title).getByTestId('task-select').click();
   await details(page).getByRole('button', { name: 'מחק משימה' }).click();
   const dialog = page.getByRole('dialog', { name: 'מחיקת משימה' });
   await expect(dialog).toBeVisible();
@@ -63,7 +63,7 @@ test('cancel, Esc and the overlay keep the task', async ({ page }) => {
   await expect(dialog).toBeHidden();
 
   await expect(row(page, title)).toHaveCount(1);
-  await expect(details(page).getByLabel('כותרת')).toHaveValue(title);
+  await expect(details(page).getByLabel('כותרת', { exact: true })).toHaveValue(title);
   expect(await exists(id)).toBe(true);
 });
 

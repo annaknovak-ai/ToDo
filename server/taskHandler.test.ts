@@ -63,6 +63,8 @@ function repo(overrides: Partial<TasksRepository>): () => TasksRepository {
     createTask: notExpected,
     updateTaskDetails: notExpected,
     deleteTask: notExpected,
+    setTaskCompleted: notExpected,
+    reorderTasks: notExpected,
     ...overrides,
   });
 }

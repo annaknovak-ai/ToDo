@@ -53,11 +53,11 @@ test.describe('home page with real Dev data', () => {
     await expect(untitled).toHaveClass(/is-completed/);
     await expect(untitled.getByRole('checkbox')).toBeChecked();
 
-    await row.getByRole('button').click();
+    await row.getByTestId('task-select').click();
     await expect(page.getByText(NO_SELECTION)).toHaveCount(0);
-    await expect(page.getByLabel('כותרת')).toHaveValue(insertedTitle);
-    await expect(page.getByLabel('תיאור')).toHaveValue('נוצר בבדיקה');
-    await expect(page.getByLabel('תאריך יעד')).toHaveValue('2026-12-20');
+    await expect(page.getByLabel('כותרת', { exact: true })).toHaveValue(insertedTitle);
+    await expect(page.getByLabel('תיאור', { exact: true })).toHaveValue('נוצר בבדיקה');
+    await expect(page.getByLabel('תאריך יעד', { exact: true })).toHaveValue('2026-12-20');
   });
 
   test('shows a task added to the database after a refresh, without local storage', async ({ page }) => {
@@ -116,9 +116,9 @@ test.describe('desktop layout', () => {
     expect(pageScrolls).toBe(false);
 
     await page.getByTestId('task-row').last().scrollIntoViewIfNeeded();
-    await page.getByTestId('task-row').last().getByRole('button').click();
-    await expect(page.getByLabel('כותרת')).toBeInViewport();
-    await expect(page.getByLabel('כותרת')).toHaveValue('משימה מספר 60');
+    await page.getByTestId('task-row').last().getByTestId('task-select').click();
+    await expect(page.getByLabel('כותרת', { exact: true })).toBeInViewport();
+    await expect(page.getByLabel('כותרת', { exact: true })).toHaveValue('משימה מספר 60');
   });
 });
 
@@ -135,8 +135,8 @@ test.describe('mobile layout', () => {
     expect(details!.y).toBeGreaterThan(list!.y + list!.height - 1);
     await expect(page.getByTestId('details-panel')).not.toBeInViewport();
 
-    await page.getByTestId('task-row').nth(1).getByRole('button').click();
-    await expect(page.getByLabel('כותרת')).toBeInViewport();
-    await expect(page.getByLabel('כותרת')).toHaveValue('משימה מספר 2');
+    await page.getByTestId('task-row').nth(1).getByTestId('task-select').click();
+    await expect(page.getByLabel('כותרת', { exact: true })).toBeInViewport();
+    await expect(page.getByLabel('כותרת', { exact: true })).toHaveValue('משימה מספר 2');
   });
 });

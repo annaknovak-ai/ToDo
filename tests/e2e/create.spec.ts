@@ -31,12 +31,12 @@ test.describe('create a task (real Dev data)', () => {
   test('with a title only: appears last, is selected, and survives refresh and a new window', async ({ page, browser }) => {
     const title = `E2E כותרת ${Date.now()}`;
     const dialog = await openModal(page);
-    await expect(dialog.getByLabel('כותרת')).toHaveValue('');
-    await expect(dialog.getByLabel('כותרת')).toHaveAttribute('placeholder', 'הזן כותרת (לא חובה)');
-    await expect(dialog.getByLabel('תיאור')).toHaveAttribute('placeholder', 'הזן תיאור (לא חובה)');
-    await expect(dialog.getByLabel('תאריך יעד')).toHaveValue(localToday());
+    await expect(dialog.getByLabel('כותרת', { exact: true })).toHaveValue('');
+    await expect(dialog.getByLabel('כותרת', { exact: true })).toHaveAttribute('placeholder', 'הזן כותרת (לא חובה)');
+    await expect(dialog.getByLabel('תיאור', { exact: true })).toHaveAttribute('placeholder', 'הזן תיאור (לא חובה)');
+    await expect(dialog.getByLabel('תאריך יעד', { exact: true })).toHaveValue(localToday());
 
-    await dialog.getByLabel('כותרת').fill(title);
+    await dialog.getByLabel('כותרת', { exact: true }).fill(title);
     await submit(page);
 
     await expect(dialog).toBeHidden();
@@ -44,8 +44,8 @@ test.describe('create a task (real Dev data)', () => {
     await expect(last).toHaveText(title);
     await expect(last).toHaveClass(/is-selected/);
     await expect(last.getByRole('checkbox')).not.toBeChecked();
-    await expect(page.getByTestId('details-panel').getByLabel('כותרת')).toHaveValue(title);
-    await expect(page.getByTestId('details-panel').getByLabel('כותרת')).toBeInViewport();
+    await expect(page.getByTestId('details-panel').getByLabel('כותרת', { exact: true })).toHaveValue(title);
+    await expect(page.getByTestId('details-panel').getByLabel('כותרת', { exact: true })).toBeInViewport();
 
     await page.reload();
     await expect(rows(page).last()).toHaveText(title);
@@ -73,30 +73,30 @@ test.describe('create a task (real Dev data)', () => {
   test('with a description only and no due date', async ({ page }) => {
     const description = `E2E תיאור בלבד ${Date.now()}`;
     const dialog = await openModal(page);
-    await dialog.getByLabel('תיאור').fill(description);
-    await dialog.getByLabel('תאריך יעד').fill('');
+    await dialog.getByLabel('תיאור', { exact: true }).fill(description);
+    await dialog.getByLabel('תאריך יעד', { exact: true }).fill('');
     await submit(page);
 
     await expect(dialog).toBeHidden();
     await expect(rows(page).last()).toHaveText(description);
     const details = page.getByTestId('details-panel');
-    await expect(details.getByLabel('תיאור')).toHaveValue(description);
-    await expect(details.getByLabel('תאריך יעד')).toHaveValue('');
+    await expect(details.getByLabel('תיאור', { exact: true })).toHaveValue(description);
+    await expect(details.getByLabel('תאריך יעד', { exact: true })).toHaveValue('');
   });
 
   test('with a title, description and a future date', async ({ page }) => {
     const title = `E2E מלאה ${Date.now()}`;
     const dialog = await openModal(page);
-    await dialog.getByLabel('כותרת').fill(title);
-    await dialog.getByLabel('תיאור').fill('שורה ראשונה\nשורה שנייה');
-    await dialog.getByLabel('תאריך יעד').fill('2030-01-15');
+    await dialog.getByLabel('כותרת', { exact: true }).fill(title);
+    await dialog.getByLabel('תיאור', { exact: true }).fill('שורה ראשונה\nשורה שנייה');
+    await dialog.getByLabel('תאריך יעד', { exact: true }).fill('2030-01-15');
     await submit(page);
 
     await expect(dialog).toBeHidden();
     const details = page.getByTestId('details-panel');
-    await expect(details.getByLabel('כותרת')).toHaveValue(title);
-    await expect(details.getByLabel('תיאור')).toHaveValue('שורה ראשונה\nשורה שנייה');
-    await expect(details.getByLabel('תאריך יעד')).toHaveValue('2030-01-15');
+    await expect(details.getByLabel('כותרת', { exact: true })).toHaveValue(title);
+    await expect(details.getByLabel('תיאור', { exact: true })).toHaveValue('שורה ראשונה\nשורה שנייה');
+    await expect(details.getByLabel('תאריך יעד', { exact: true })).toHaveValue('2030-01-15');
   });
 });
 
@@ -108,18 +108,18 @@ test.describe('validation and closing', () => {
     });
     const dialog = await openModal(page);
 
-    await dialog.getByLabel('כותרת').fill('    ');
+    await dialog.getByLabel('כותרת', { exact: true }).fill('    ');
     await submit(page);
     await expect(dialog.getByRole('alert')).toHaveText('יש להזין כותרת או תיאור למשימה');
 
-    await dialog.getByLabel('כותרת').fill('א'.repeat(101));
-    await dialog.getByLabel('תיאור').fill('ב'.repeat(2001));
-    await dialog.getByLabel('תאריך יעד').fill('2020-01-01');
+    await dialog.getByLabel('כותרת', { exact: true }).fill('א'.repeat(101));
+    await dialog.getByLabel('תיאור', { exact: true }).fill('ב'.repeat(2001));
+    await dialog.getByLabel('תאריך יעד', { exact: true }).fill('2020-01-01');
     await submit(page);
     await expect(dialog.getByText('הכותרת יכולה להכיל עד 100 תווים.')).toBeVisible();
     await expect(dialog.getByText('התיאור יכול להכיל עד 2,000 תווים.')).toBeVisible();
     await expect(dialog.getByText('תאריך היעד לא יכול להיות בעבר.')).toBeVisible();
-    await expect(dialog.getByLabel('כותרת')).toHaveValue('א'.repeat(101));
+    await expect(dialog.getByLabel('כותרת', { exact: true })).toHaveValue('א'.repeat(101));
     expect(posts).toBe(0);
   });
 
@@ -131,20 +131,20 @@ test.describe('validation and closing', () => {
       () => dialog.getByRole('button', { name: 'סגור' }).last().click(),
       () => page.keyboard.press('Escape'),
     ]) {
-      await dialog.getByLabel('כותרת').fill('טיוטה');
-      await dialog.getByLabel('תאריך יעד').fill('');
+      await dialog.getByLabel('כותרת', { exact: true }).fill('טיוטה');
+      await dialog.getByLabel('תאריך יעד', { exact: true }).fill('');
       await close();
       await expect(dialog).toBeHidden();
       await page.getByRole('button', { name: 'הוסף משימה' }).click();
-      await expect(dialog.getByLabel('כותרת')).toHaveValue('');
-      await expect(dialog.getByLabel('תאריך יעד')).toHaveValue(localToday());
+      await expect(dialog.getByLabel('כותרת', { exact: true })).toHaveValue('');
+      await expect(dialog.getByLabel('תאריך יעד', { exact: true })).toHaveValue(localToday());
     }
 
     // Click on the dark overlay, outside the window.
-    await dialog.getByLabel('כותרת').fill('לא נמחק');
+    await dialog.getByLabel('כותרת', { exact: true }).fill('לא נמחק');
     await page.mouse.click(5, 5);
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByLabel('כותרת')).toHaveValue('לא נמחק');
+    await expect(dialog.getByLabel('כותרת', { exact: true })).toHaveValue('לא נמחק');
   });
 });
 
@@ -161,11 +161,11 @@ test.describe('server errors (mocked POST)', () => {
     });
     const title = `E2E אחרי כישלון ${Date.now()}`;
     const dialog = await openModal(page);
-    await dialog.getByLabel('כותרת').fill(title);
+    await dialog.getByLabel('כותרת', { exact: true }).fill(title);
     await submit(page);
 
     await expect(dialog.getByRole('alert')).toHaveText(SAVE_FAILED);
-    await expect(dialog.getByLabel('כותרת')).toHaveValue(title);
+    await expect(dialog.getByLabel('כותרת', { exact: true })).toHaveValue(title);
 
     await submit(page);
     await expect(dialog).toBeHidden();
@@ -185,10 +185,10 @@ test.describe('server errors (mocked POST)', () => {
       }
     });
     const dialog = await openModal(page);
-    await dialog.getByLabel('כותרת').fill('לא תיכנס');
+    await dialog.getByLabel('כותרת', { exact: true }).fill('לא תיכנס');
     await submit(page);
     await expect(dialog.getByRole('alert')).toHaveText(LIST_FULL_ON_CREATE);
-    await expect(dialog.getByLabel('כותרת')).toHaveValue('לא תיכנס');
+    await expect(dialog.getByLabel('כותרת', { exact: true })).toHaveValue('לא תיכנס');
   });
 
   test('with 1,000 tasks the add button is disabled with a message', async ({ page }) => {

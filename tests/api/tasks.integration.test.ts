@@ -5,6 +5,7 @@ import {
   createTasksRepository,
   TaskLimitError,
   TaskNotFoundError,
+  TaskOrderConflictError,
   TaskValidationError,
   type TaskRow,
 } from '../../server/tasksRepository.js';
@@ -269,5 +270,148 @@ describe('deleteTask against Dev', () => {
     expect(new Set(after.map((r) => r.position)).size).toBe(10);
     expect(after.map((r) => r.id)).not.toContain(ids[2]);
     expect(after.map((r) => r.id)).not.toContain(ids[7]);
+  });
+});
+
+describe('setTaskCompleted against Dev', () => {
+  it('sets and clears completed, touching nothing else but updated_at', async () => {
+    const id = await insertTask(db, { title: 'א', description: 'ת', dueDate: '2026-12-31', position: 3 });
+    const before = (await db.query('select updated_at from public.tasks where id = $1', [id])).rows[0].updated_at;
+
+    const done = await createTasksRepository(db).setTaskCompleted(id, true);
+    expect(done).toEqual({ id, title: 'א', description: 'ת', dueDate: '2026-12-31', completed: true, position: 3 });
+    const after = (await db.query('select updated_at from public.tasks where id = $1', [id])).rows[0].updated_at;
+    expect(after.getTime()).toBeGreaterThan(before.getTime());
+
+    // Explicit values, not a toggle: saving the same value twice keeps it.
+    expect((await createTasksRepository(otherDb).setTaskCompleted(id, true)).completed).toBe(true);
+    expect((await createTasksRepository(db).setTaskCompleted(id, false)).completed).toBe(false);
+  });
+
+  it('throws TaskNotFoundError for a task that does not exist', async () => {
+    const id = await insertTask(db, { title: 'א', position: 0 });
+    await db.query('delete from public.tasks where id = $1', [id]);
+    await expect(createTasksRepository(db).setTaskCompleted(id, true)).rejects.toBeInstanceOf(TaskNotFoundError);
+  });
+});
+
+describe('reorderTasks against Dev', () => {
+  async function threeTasks() {
+    const a = await insertTask(db, { title: 'א', position: 0 });
+    const b = await insertTask(db, { title: 'ב', position: 4 });
+    const c = await insertTask(db, { title: 'ג', position: 9 });
+    return [a, b, c];
+  }
+
+  it('saves the exact order at contiguous positions and returns the list', async () => {
+    const [a, b, c] = await threeTasks();
+    const list = await createTasksRepository(db).reorderTasks([c, a, b]);
+    expect(list.map((t) => [t.id, t.position])).toEqual([
+      [c, 0],
+      [a, 1],
+      [b, 2],
+    ]);
+    expect(await positions()).toEqual([
+      { id: c, position: 0 },
+      { id: a, position: 1 },
+      { id: b, position: 2 },
+    ]);
+  });
+
+  it('keeps completed and the details unchanged', async () => {
+    const a = await insertTask(db, { title: 'א', description: 'ת', dueDate: '2026-12-31', completed: true, position: 0 });
+    const b = await insertTask(db, { title: 'ב', position: 1 });
+    const list = await createTasksRepository(db).reorderTasks([b, a]);
+    expect(list[1]).toEqual({ id: a, title: 'א', description: 'ת', dueDate: '2026-12-31', completed: true, position: 1 });
+  });
+
+  it('accepts [] for an empty list', async () => {
+    expect(await createTasksRepository(db).reorderTasks([])).toEqual([]);
+  });
+
+  it('refuses ids that do not match the list one to one, and changes nothing', async () => {
+    const [a, b, c] = await threeTasks();
+    const gone = await insertTask(db, { title: 'נמחקה', position: 10 });
+    await db.query('delete from public.tasks where id = $1', [gone]);
+    const before = await positions();
+    const repo = createTasksRepository(db);
+    for (const ids of [
+      [a, b], // one missing (a task created meanwhile)
+      [a, b, c, gone], // one extra (a task deleted meanwhile)
+      [a, b, gone], // same length, one replaced
+      [a, a, b, c], // a duplicate
+      [a, a, b], // a duplicate with the right length
+    ]) {
+      await expect(repo.reorderTasks(ids)).rejects.toBeInstanceOf(TaskOrderConflictError);
+    }
+    expect(await positions()).toEqual(before);
+  });
+
+  it('two concurrent reorders: the result is exactly one of them, contiguous', async () => {
+    await fillTasks(20);
+    const ids = (await positions()).map((r) => r.id);
+    const first = [...ids].reverse();
+    const second = [...ids.slice(10), ...ids.slice(0, 10)];
+    await Promise.all([
+      createTasksRepository(db).reorderTasks(first),
+      createTasksRepository(otherDb).reorderTasks(second),
+    ]);
+    const after = await positions();
+    expect(after.map((r) => r.position)).toEqual([...Array(20).keys()]);
+    expect([first, second]).toContainEqual(after.map((r) => r.id));
+  });
+
+  it('a reorder racing a create either succeeds with the new task last or is refused; nothing is lost', async () => {
+    await fillTasks(10);
+    const ids = (await positions()).map((r) => r.id);
+    const order = [...ids].reverse();
+    const [reorder, created] = await Promise.allSettled([
+      createTasksRepository(db).reorderTasks(order),
+      createTasksRepository(otherDb).createTask({ title: 'חדשה', description: null, dueDate: null }),
+    ]);
+    expect(created.status).toBe('fulfilled');
+    const newId = (created as PromiseFulfilledResult<{ id: string }>).value.id;
+    const after = await positions();
+    expect(after).toHaveLength(11);
+    expect(new Set(after.map((r) => r.position)).size).toBe(11);
+    if (reorder.status === 'fulfilled') {
+      expect(after.map((r) => r.id)).toEqual([...order, newId]);
+    } else {
+      expect(reorder.reason).toBeInstanceOf(TaskOrderConflictError);
+      expect(after.map((r) => r.id)).toEqual([...ids, newId]);
+    }
+  });
+
+  it('a reorder racing a delete either succeeds before it or is refused; positions stay contiguous', async () => {
+    await fillTasks(10);
+    const ids = (await positions()).map((r) => r.id);
+    const order = [...ids].reverse();
+    const [reorder, deleted] = await Promise.allSettled([
+      createTasksRepository(db).reorderTasks(order),
+      createTasksRepository(otherDb).deleteTask(ids[4]),
+    ]);
+    expect(deleted.status).toBe('fulfilled');
+    const after = await positions();
+    expect(after.map((r) => r.position)).toEqual([...Array(9).keys()]);
+    const remaining = (list: string[]) => list.filter((id) => id !== ids[4]);
+    if (reorder.status === 'fulfilled') {
+      expect(after.map((r) => r.id)).toEqual(remaining(order));
+    } else {
+      expect(reorder.reason).toBeInstanceOf(TaskOrderConflictError);
+      expect(after.map((r) => r.id)).toEqual(remaining(ids));
+    }
+  });
+
+  it('a status change during a reorder: both are kept', async () => {
+    await fillTasks(10);
+    const ids = (await positions()).map((r) => r.id);
+    const order = [...ids].reverse();
+    await Promise.all([
+      createTasksRepository(db).reorderTasks(order),
+      createTasksRepository(otherDb).setTaskCompleted(ids[3], true),
+    ]);
+    expect((await positions()).map((r) => r.id)).toEqual(order);
+    const { rows } = await db.query('select completed from public.tasks where id = $1', [ids[3]]);
+    expect(rows[0].completed).toBe(true);
   });
 });
