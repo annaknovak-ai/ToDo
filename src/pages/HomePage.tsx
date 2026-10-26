@@ -140,10 +140,13 @@ export default function HomePage() {
   return (
     <main className="home">
       <div className="home-header">
-        <h1>המשימות שלי</h1>
+        <h1 className="visually-hidden-mobile">המשימות שלי</h1>
         <div className="add-task">
           {listFull && <p className="add-task-note">{messages.listFull}</p>}
           <button type="button" className="btn btn-primary" disabled={!canAdd} onClick={() => setCreating(true)}>
+            <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+              <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
             הוסף משימה
           </button>
         </div>

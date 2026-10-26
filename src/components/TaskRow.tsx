@@ -43,14 +43,17 @@ export default function TaskRow({ task, selected, statusPending, dragDisabled, o
       >
         <span className="task-label">{label}</span>
       </button>
-      <input
-        type="checkbox"
-        className="task-checkbox"
-        checked={task.completed}
-        disabled={statusPending}
-        onChange={(e) => onToggle(task.id, e.target.checked)}
-        aria-label={label}
-      />
+      {/* The label only enlarges the touch area around the small box. */}
+      <label className="task-check">
+        <input
+          type="checkbox"
+          className="task-checkbox"
+          checked={task.completed}
+          disabled={statusPending}
+          onChange={(e) => onToggle(task.id, e.target.checked)}
+          aria-label={label}
+        />
+      </label>
       <button
         type="button"
         className="drag-handle"

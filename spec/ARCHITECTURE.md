@@ -392,3 +392,16 @@ Chrome Desktop / Chrome Android (PWA)
 - גרירה במגע נבדקת ב-E2E באירועי Touch אמיתיים של Chrome (`Input.dispatchTouchEvent` דרך CDP) בפרויקט Mobile Chrome; בדיקה בטלפון אמיתי נעשית ידנית.
 
 **השלכות:** בקשת סדר שגויה מבחינה מבנית נבדלת מרשימה שהשתנתה. אין תלות נוספת מעבר ל-`@dnd-kit/core`, `@dnd-kit/sortable` ו-`@dnd-kit/utilities`.
+
+### ADR-22: פס Offline גלובלי, PWA ובדיקת Production לקריאה בלבד
+
+**הקשר:** ADR-10 קובע הודעה קבועה בשני הדפים כשאין חיבור, ללא Service Worker. Milestone 5 דורש גם אימות התקנה ובדיקה של האתר החי, בלי לשנות נתונים ב-Production.
+
+**החלטה:**
+- `useOnlineStatus` (`navigator.onLine` + אירועי `online`/`offline`) ורכיב `OfflineBanner` מתחת לניווט ב-`App`, כך שהפס מופיע בשני הדפים. רשימה שכבר מוצגת נשארת על המסך מתחת לפס; הכפתורים אינם נחסמים מראש – פעולה נכשלת בבקשת הרשת ומחזירה את המצב הקודם עם הודעת "אין חיבור" (`apiErrors.ts`).
+- האייקונים (`public/icons/*.png`) נוצרים מקובצי ה-SVG ב-`npm run icons` (Chromium של Playwright) ונשמרים ב-Git.
+- ב-E2E נבדקת אפשרות ההתקנה ב-`Page.getInstallabilityErrors` של Chrome (CDP), ו-localhost נחשב מקור מאובטח כמו HTTPS.
+- `npm run test:prod` (`playwright.prod.config.ts`, `tests/prod/`) מריץ בדיקות קריאה בלבד מול האתר החי; הכתובת ניתנת במשתנה `PROD_URL` בשורת הפקודה ולא ב-`.env`.
+- עזר הגרירה של ה-E2E (`tests/helpers/drag.ts`) משותף לבדיקת הסדר ולבדיקת המסע המלא.
+
+**השלכות:** אין שום מנגנון ששומר משימות או תשובות API במכשיר. במובייל כותרת "המשימות שלי" מוסתרת חזותית (נשארת לקוראי מסך), לפי ה-Wireframe. התקנה בטלפון אמיתי וגרירה באצבע נבדקות ידנית אחרי הפריסה.

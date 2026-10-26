@@ -60,3 +60,11 @@ export async function insertTask(
   );
   return result.rows[0].id;
 }
+
+// Replaces the whole Dev list with the given tasks, in order (the run's data is restored afterwards).
+export async function replaceTasks(db: pg.Pool, tasks: { title: string; completed?: boolean }[]): Promise<void> {
+  await db.query('delete from public.tasks');
+  for (const [position, task] of tasks.entries()) {
+    await insertTask(db, { title: task.title, completed: task.completed, position });
+  }
+}

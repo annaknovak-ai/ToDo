@@ -147,7 +147,9 @@ describe('drag handle', () => {
     mockApi();
     await renderHome();
     const children = Array.from(rowOf('לקנות מצרכים').children);
-    expect(children.map((c) => c.getAttribute('data-testid') ?? c.getAttribute('type'))).toEqual([
+    // The checkbox sits inside a label that only enlarges its touch area.
+    const kind = (c: Element) => c.getAttribute('data-testid') ?? c.querySelector('input')?.getAttribute('type');
+    expect(children.map(kind)).toEqual([
       'task-select',
       'checkbox',
       'drag-handle',

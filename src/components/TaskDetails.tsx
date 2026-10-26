@@ -152,7 +152,22 @@ function TaskEditor({ task, onSaved, onDeleted }: EditorProps) {
           <button type="submit" className="btn btn-primary" disabled={saving}>
             שמור שינויים
           </button>
-          <button type="button" className="btn btn-danger" disabled={saving} onClick={() => setConfirmingDelete(true)}>
+          <button
+            type="button"
+            className="btn btn-danger-outline"
+            disabled={saving}
+            onClick={() => setConfirmingDelete(true)}
+          >
+            <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+              <path
+                d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             מחק משימה
           </button>
         </div>

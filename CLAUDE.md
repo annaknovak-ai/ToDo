@@ -58,5 +58,6 @@
 ## פקודות הרצה
 > Claude ממלא זאת ברגע שהאפליקציה יכולה לרוץ (בדרך כלל בסיום Milestone 1), ומעדכן אם משהו משתנה.
 - **הרצה (dev):** `npm start` (האתר המלא, `vercel dev` מול Dev, בכתובת http://localhost:3000). `npm run dev` מריץ רק את המסכים, בלי API.
-- **בדיקות (test):** `npm test` (Unit + Component); `npm run test:integration` (מול Dev); `npm run test:e2e` (Playwright מול `vercel dev` ו-Dev). שתי האחרונות משחזרות את נתוני Dev בסיום.
+- **בדיקות (test):** `npm test` (Unit + Component); `npm run test:integration` (מול Dev); `npm run test:e2e` (Playwright מול `vercel dev` ו-Dev). שתי האחרונות משחזרות את נתוני Dev בסיום. `PROD_URL=<כתובת האתר החי> npm run test:prod` – בדיקות קריאה בלבד מול Production, אחרי דחיפה.
+- **אייקוני PWA:** `npm run icons` (יוצר את קובצי ה-PNG מה-SVG ב-`public/icons/`).
 - **מסד נתונים:** `npm run db:push` (החלת Migrations על Dev בלבד); `npm run seed:dev` (משימות לדוגמה ב-Dev, רק אם הטבלה ריקה).

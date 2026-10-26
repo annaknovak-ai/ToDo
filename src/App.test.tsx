@@ -140,3 +140,19 @@ describe('Navigation', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'אודות' })).toBeInTheDocument();
   });
 });
+
+describe('Offline banner', () => {
+  afterEach(() => {
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => true });
+  });
+
+  it('is shown on both pages while offline', async () => {
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+    mockFetch(() => Promise.reject(new TypeError('Failed to fetch')));
+    renderAt('/');
+    expect(await screen.findByTestId('offline-banner')).toHaveTextContent(messages.offline);
+
+    await userEvent.click(screen.getByRole('link', { name: 'אודות' }));
+    expect(screen.getByTestId('offline-banner')).toHaveTextContent(messages.offline);
+  });
+});

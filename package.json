@@ -14,7 +14,9 @@
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
+    "test:prod": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright test --config playwright.prod.config.ts",
     "seed:dev": "tsx scripts/seed-dev.ts",
+    "icons": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 tsx scripts/generate-icons.ts",
     "db:push": "supabase db push --linked",
     "postinstall": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium"
   },
